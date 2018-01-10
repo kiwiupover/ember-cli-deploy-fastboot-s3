@@ -16,12 +16,27 @@ const stubProject = {
   }
 };
 
+
 describe('fastboot-s3 plugin', () => {
   let subject, mockUi, plugin, fullConfig, s3Client;
 
   beforeEach(() => {
     s3Client = {
       putObject: function() {
+        return {
+          promise: function() {
+            return RSVP.Promise.resolve();
+          }
+        };
+      },
+      getObject: function() {
+        return {
+          promise: function() {
+            return RSVP.Promise.resolve();
+          }
+        };
+      },
+      listObjects: function() {
         return {
           promise: function() {
             return RSVP.Promise.resolve();
@@ -346,6 +361,10 @@ describe('fastboot-s3 plugin', () => {
 
   describe('activate hook', () => {
     it('prints success message if activation succeeds', () => {
+
+      let config = fullConfig;
+      config.deployArchive = 'fastboot-deploy';
+
       const context = {
         ui: mockUi,
         project: stubProject,
@@ -353,7 +372,7 @@ describe('fastboot-s3 plugin', () => {
           'fastboot-s3': fullConfig
         },
         commandOptions: {
-          revisionKey: '1234'
+          revisionKey: '123456'
         },
         distDir: `${process.cwd()}/tests/fixtures/${DIST_DIR}`,
         revisionData: {
@@ -370,6 +389,21 @@ describe('fastboot-s3 plugin', () => {
                 }
               }
             };
+          },
+          listObjects: (s3, callback) => {
+            callback(null,
+              {
+                Contents: [
+                  {Key: 'fastboot-deploy-info.json', LastModified: new Date()},
+                  {Key: 'fastboot-deploy-123456.zip', LastModified: new Date()},
+                  {Key: 'fastboot-deploy-revABCD.zip', LastModified: new Date()},
+                  {Key: 'fastboot-deploy-349456.zip', LastModified: new Date()}
+                ]
+              }
+            );
+          },
+          getObject: (s3, callback) => {
+            callback({code: 'NotFound'}, null);
           }
         }
       };
